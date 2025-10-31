@@ -2,6 +2,13 @@ use std::env;
 use std::io;
 use std::process;
 
+enum Token {
+    Word,
+    SingleDigit(i32),
+    PositiveGroup(String),
+    NegativeGroup(String),
+}
+
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
     if pattern.chars().count() == 1 {
         return input_line.contains(pattern);
@@ -12,7 +19,11 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
     } else if pattern.starts_with('[') && pattern.ends_with(']') {
         let pat_len = pattern.len();
         let finding_chars = &pattern[1..pat_len - 1];
-        return input_line.chars().any(|c| finding_chars.contains(c));
+        if finding_chars.starts_with('^') {
+            return input_line.chars().any(|c| !finding_chars.contains(c));
+        } else {
+            return input_line.chars().any(|c| finding_chars.contains(c));
+        }
     } else {
         panic!("Unhandled pattern: {}", pattern)
     }
