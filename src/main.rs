@@ -4,8 +4,12 @@ use std::io;
 use std::process;
 
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
-    let rg = Regex::new(pattern).unwrap();
-    return rg.is_match(input_line);
+    // match on digit
+    if pattern.contains(r"\d") {
+        return input_line.chars().any(|c| c.to_digit(10).is_some());
+    } else {
+        panic!("Unhandled pattern: {}", pattern)
+    }
 }
 
 // Usage: echo <input_text> | your_program.sh -E <pattern>
