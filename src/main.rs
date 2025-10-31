@@ -1,12 +1,12 @@
-use regex::Regex;
 use std::env;
 use std::io;
 use std::process;
 
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
-    // match on digit
-    if pattern.contains(r"\d") {
-        return input_line.chars().any(|c| c.to_digit(10).is_some());
+    if pattern.chars().count() == 1 {
+        return input_line.contains(pattern);
+    } else if pattern.contains("\\d") {
+        return input_line.chars().any(|c| c.is_numeric());
     } else {
         panic!("Unhandled pattern: {}", pattern)
     }
