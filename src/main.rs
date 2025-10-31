@@ -60,7 +60,7 @@ impl Pattern {
         }
     }
 
-    fn match_all(pats: &[Self], s: &str, from_beginin: bool) -> bool {
+    fn match_all(pats: &[Self], s: &str, from_begining: bool, exact: bool) -> bool {
         if pats.is_empty() {
             return true;
         }
@@ -68,7 +68,7 @@ impl Pattern {
         let first_pat = &pats[0];
 
         if let Some(char_idx) = first_pat.match_pat(s) {
-            if (from_beginin && char_idx != 0) {
+            if from_begining && char_idx != 0 {
                 return false;
             }
             // Calculate how many characters this pattern consumed
@@ -81,8 +81,12 @@ impl Pattern {
                 .map(|(idx, _)| idx)
                 .unwrap_or(s.len());
 
+            if exact {
+                return after_match == s.len();
+            }
+
             // Recursively match the rest
-            Self::match_all(&pats[1..], &s[after_match..], from_beginin)
+            Self::match_all(&pats[1..], &s[after_match..], from_begining, exact)
         } else {
             false
         }
@@ -101,11 +105,22 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
         } else {
             return input_line.chars().any(|c| finding_chars.contains(c));
         }
+    } else if pattern.starts_with('^') && pattern.ends_with('$') {
+        let start_end_with_pats = Pattern::parse(&pattern[1..pattern.len() - 1]);
+        return Pattern::match_all(&start_end_with_pats, input_line, true, true);
     } else if pattern.starts_with('^') {
         let start_with_pats = Pattern::parse(&pattern[1..]);
-        return Pattern::match_all(&start_with_pats, input_line, true);
+        return Pattern::match_all(&start_with_pats, input_line, true, false);
+    } else if pattern.ends_with('$') {
+        let start_with_pats = Pattern::parse(&pattern.chars().rev().skip(1).collect::<String>());
+        return Pattern::match_all(
+            &start_with_pats,
+            &input_line.chars().rev().collect::<String>(),
+            true,
+            false,
+        );
     } else {
-        return Pattern::match_all(&pats, input_line, false);
+        return Pattern::match_all(&pats, input_line, false, false);
     }
 }
 
