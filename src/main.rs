@@ -9,6 +9,10 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
         return input_line.chars().any(|c| c.is_numeric());
     } else if pattern.contains("\\w") {
         return input_line.chars().any(|c| c.is_alphanumeric() || c == '_');
+    } else if pattern.starts_with('[') && pattern.ends_with(']') {
+        let pat_len = pattern.len();
+        let finding_chars = &pattern[1..pat_len - 1];
+        return input_line.chars().any(|c| finding_chars.contains(c));
     } else {
         panic!("Unhandled pattern: {}", pattern)
     }
@@ -31,8 +35,10 @@ fn main() {
 
     // TODO: Uncomment the code below to pass the first stage
     if match_pattern(&input_line, &pattern) {
+        println!("Pattern matched");
         process::exit(0)
     } else {
+        eprintln!("Pattern did NOT matched");
         process::exit(1)
     }
 }
