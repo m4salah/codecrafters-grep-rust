@@ -2,21 +2,95 @@ use std::env;
 use std::io;
 use std::process;
 
-enum Token {
-    Word,
-    SingleDigit(i32),
-    PositiveGroup(String),
-    NegativeGroup(String),
+#[derive(Debug)]
+pub enum Pattern {
+    SingleCharacter,
+    SingleDigit,
+    ExactWord(String),
+}
+
+impl Pattern {
+    fn parse(s: &str) -> Vec<Pattern> {
+        let mut pats = Vec::new();
+        let mut it = s.chars().peekable();
+        while let Some(c) = it.next() {
+            if c == '\\' {
+                println!("c: {}", c);
+                if let Some(w) = it.next() {
+                    println!("w: {}", w);
+                    if w == 'w' {
+                        pats.push(Pattern::SingleCharacter)
+                    } else if w == 'd' {
+                        pats.push(Pattern::SingleDigit)
+                    } else if w == '\\' {
+                        pats.push(Pattern::ExactWord("\\".to_string()));
+                    } else {
+                        todo!("Unhandled pattern");
+                    }
+                }
+            } else {
+                let mut exact_string = String::new();
+                exact_string.push(c);
+                while let Some(&ch) = it.peek() {
+                    if ch == '\\' {
+                        break;
+                    } else {
+                        exact_string.push(ch);
+                        it.next();
+                    }
+                }
+                pats.push(Pattern::ExactWord(exact_string));
+            }
+        }
+        return pats;
+    }
+
+    fn match_pat(&self, s: &str) -> Option<usize> {
+        match self {
+            Pattern::SingleCharacter => s.chars().position(|c| c.is_alphanumeric() || c == '_'),
+            Pattern::SingleDigit => s.chars().position(|c| c.is_ascii_digit()),
+            Pattern::ExactWord(word) => s.find(word),
+        }
+    }
+
+    fn consumed_chars(&self) -> usize {
+        match self {
+            Pattern::SingleCharacter | Pattern::SingleDigit => 1,
+            Pattern::ExactWord(word) => word.chars().count(),
+        }
+    }
+
+    fn match_all(pats: &[Self], s: &str) -> bool {
+        if pats.is_empty() {
+            return true;
+        }
+
+        let first_pat = &pats[0];
+
+        if let Some(char_idx) = first_pat.match_pat(s) {
+            // Calculate how many characters this pattern consumed
+
+            let consumed_chars = first_pat.consumed_chars();
+            // Find the byte index after consuming the pattern
+            let after_match = s
+                .char_indices()
+                .nth(char_idx + consumed_chars)
+                .map(|(idx, _)| idx)
+                .unwrap_or(s.len());
+
+            // Recursively match the rest
+            Self::match_all(&pats[1..], &s[after_match..])
+        } else {
+            false
+        }
+    }
 }
 
 fn match_pattern(input_line: &str, pattern: &str) -> bool {
-    if pattern.chars().count() == 1 {
-        return input_line.contains(pattern);
-    } else if pattern.contains("\\d") {
-        return input_line.chars().any(|c| c.is_numeric());
-    } else if pattern.contains("\\w") {
-        return input_line.chars().any(|c| c.is_alphanumeric() || c == '_');
-    } else if pattern.starts_with('[') && pattern.ends_with(']') {
+    let pats = Pattern::parse(pattern);
+    println!("{:#?}", pats);
+
+    if pattern.starts_with('[') && pattern.ends_with(']') {
         let pat_len = pattern.len();
         let finding_chars = &pattern[1..pat_len - 1];
         if finding_chars.starts_with('^') {
@@ -25,7 +99,7 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
             return input_line.chars().any(|c| finding_chars.contains(c));
         }
     } else {
-        panic!("Unhandled pattern: {}", pattern)
+        return Pattern::match_all(&pats, input_line);
     }
 }
 
