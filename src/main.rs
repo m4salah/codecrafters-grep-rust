@@ -60,7 +60,7 @@ impl Pattern {
         }
     }
 
-    fn match_all(pats: &[Self], s: &str) -> bool {
+    fn match_all(pats: &[Self], s: &str, from_beginin: bool) -> bool {
         if pats.is_empty() {
             return true;
         }
@@ -68,6 +68,9 @@ impl Pattern {
         let first_pat = &pats[0];
 
         if let Some(char_idx) = first_pat.match_pat(s) {
+            if (from_beginin && char_idx != 0) {
+                return false;
+            }
             // Calculate how many characters this pattern consumed
 
             let consumed_chars = first_pat.consumed_chars();
@@ -79,7 +82,7 @@ impl Pattern {
                 .unwrap_or(s.len());
 
             // Recursively match the rest
-            Self::match_all(&pats[1..], &s[after_match..])
+            Self::match_all(&pats[1..], &s[after_match..], from_beginin)
         } else {
             false
         }
@@ -98,8 +101,11 @@ fn match_pattern(input_line: &str, pattern: &str) -> bool {
         } else {
             return input_line.chars().any(|c| finding_chars.contains(c));
         }
+    } else if pattern.starts_with('^') {
+        let start_with_pats = Pattern::parse(&pattern[1..]);
+        return Pattern::match_all(&start_with_pats, input_line, true);
     } else {
-        return Pattern::match_all(&pats, input_line);
+        return Pattern::match_all(&pats, input_line, false);
     }
 }
 
